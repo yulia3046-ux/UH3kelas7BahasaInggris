@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>English Assessment Game - Culinary and Me</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Poppins & Bubblegum Sans -->
+    <link href="https://fonts.googleapis.com/css2?family=Bubblegum+Sans&family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            purple: '#7C3AED',
+                            pink: '#EC4899',
+                            yellow: '#F59E0B',
+                            teal: '#0D9488',
+                            blue: '#2563EB',
+                            bg: '#F3F4F6'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Poppins', 'sans-serif'],
+                        fun: ['Bubblegum Sans', 'cursive']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 min-h-screen font-sans text-slate-800 select-none flex flex-col justify-between">
+
+    <script>
+        /* ==============================================================================
+           [PETUNJUK GURU / GURU SETUP AREA]
+           1. Masukkan URL Google Apps Script (GAS) Anda di variabel GAS_URL di bawah ini.
+           2. Untuk menambahkan gambar pada soal atau pilihan jawaban, isi URL gambar
+              pada objek QUESTION_IMAGES dan OPTION_IMAGES sesuai index nomor soal.
+           ============================================================================== */
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbyL6g7iTptWE6YgmTCNvbxR4OZfmNtCFvgwkHd5_PjWrXxgSvCvX4LH-e5dkSE7eJhr8Q/exec"; // Contoh: "https://script.google.com/macros/s/.../exec"
+        const DEFAULT_PASSCODE = "ENGLISH7"; // Passcode default untuk siswa masuk
+
+        // Tempat Menyisipkan Image URL per Soal (Key = Nomor Soal 1-30)
+        const QUESTION_IMAGES = {
+            1: "",  // Contoh: "https://example.com/gambar_soal_1.jpg"
+            16: "", // Contoh gambar resep es teh manis
+            22: "", // Contoh gambar resep omelet
+            // Tambahkan URL gambar untuk nomor lainnya jika ada...
+        };
+
+        // Tempat Menyisipkan Image URL untuk Option Pilihan Ganda (Key = Nomor Soal, Sub-Key = A/B/C/D)
+        const OPTION_IMAGES = {
+            1: { A: "", B: "", C: "", D: "" },
+            // Contoh Soal 11:
+            // 11: { A: "https://link-gambar-a.jpg", B: "", C: "", D: "" }
+        };
+    </script>
+
+    <!-- Header / Navbar Top -->
+    <header id="top-nav" class="hidden bg-white/80 backdrop-blur-md border-b border-purple-100 sticky top-0 z-40 px-4 py-3 shadow-sm">
+        <div class="max-w-5xl mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-purple-600 to-pink-500 flex items-center justify-center text-white text-xl font-bold shadow-md shadow-purple-200">
+                    <i class="fa-solid font-fun">UH</i>
+                </div>
+                <div>
+                    <h1 class="font-fun text-xl text-purple-700 leading-none">Culinary & Me</h1>
+                    <p class="text-xs text-slate-500 font-medium mt-0.5">Bahasa Inggris Kelas 7 • Unit 2</p>
+                </div>
+            </div>
+
+            <!-- Timer & Student Info -->
+            <div class="flex items-center gap-4">
+                <div id="violation-badge" class="hidden sm:flex items-center gap-1.5 px-3 py-1 bg-amber-100 text-amber-800 rounded-full text-xs font-semibold border border-amber-200">
+                    <i class="fa-solid fa-triangle-exclamation text-amber-600"></i>
+                    <span>Pelanggaran: <span id="violation-count">0</span>/3</span>
+                </div>
+                <div class="flex items-center gap-2 px-4 py-1.5 bg-gradient-to-r from-red-500 to-pink-500 text-white rounded-2xl shadow-md shadow-red-200 font-mono font-bold text-sm">
+                    <i class="fa-solid fa-clock animate-pulse"></i>
+                    <span id="timer-display">60:00</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-5xl mx-auto w-full p-4 flex-1 flex flex-col justify-center">
+
+        <!-- SCREEN 1: Registrasi & Passcode -->
+        <div id="screen-welcome" class="glass-card rounded-3xl p-6 sm:p-10 shadow-xl border border-white/60 max-w-lg mx-auto w-full my-auto transition-all">
+            <div class="text-center mb-6">
+                <div class="inline-flex p-4 bg-purple-100 text-purple-600 rounded-3xl mb-3 shadow-inner">
+                    <i class="fa-solid fa-utensils text-4xl"></i>
+                </div>
+                <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-800 font-fun">ULANGAN HARIAN 3 GANJIL</h2>
+                <p class="text-sm text-purple-600 font-semibold mt-1">Bahasa Inggris Kelas 7 (Fase D)</p>
+                <p class="text-xs text-slate-500 mt-0.5">Materi: Unit 2 – Culinary and Me</p>
+            </div>
+
+            <form id="form-login" onsubmit="startGame(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Nama Lengkap</label>
+                    <div class="relative">
+                        <i class="fa-solid fa-user absolute left-4 top-3.5 text-slate-400"></i>
+                        <input type="text" id="input-nama" required placeholder="Masukkan nama lengkapmu..." class="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-purple-500 focus:bg-white outline-none font-medium transition text-sm">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Kelas</label>
+                    <div class="relative">
+                        <i class="fa-solid fa-school absolute left-4 top-3.5 text-slate-400"></i>
+                        <input type="text" id="input-kelas" required placeholder="Contoh: 7A / 7.1" class="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-purple-500 focus:bg-white outline-none font-medium transition text-sm">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Passcode Ujian</label>
+                    <div class="relative">
+                        <i class="fa-solid fa-key absolute left-4 top-3.5 text-slate-400"></i>
+                        <input type="password" id="input-passcode" required placeholder="Masukkan passcode dari guru..." class="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-purple-500 focus:bg-white outline-none font-medium transition text-sm">
+                    </div>
+                </div>
+
+                <div id="login-error" class="hidden p-3 bg-red-50 border border-red-200 text-red-600 text-xs rounded-xl flex items-center gap-2">
+                    <i class="fa-solid fa-circle-exclamation text-sm"></i>
+                    <span id="login-error-msg">Passcode salah! Hubungi gurumu.</span>
+                </div>
+
+                <div class="bg-amber-50 border border-amber-200 rounded-2xl p-3 text-xs text-amber-800 flex items-start gap-2">
+                    <i class="fa-solid fa-shield-halved text-amber-600 text-sm mt-0.5"></i>
+                    <span><strong>Aturan Asesmen:</strong> Jangan beralih tab atau keluar penuh dari aplikasi! Maksimal 3x pelanggaran sebelum ulangan otomatis dibatalkan.</span>
+                </div>
+
+                <button type="submit" class="w-full py-3.5 bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-pink-600 text-white font-bold rounded-2xl shadow-lg shadow-purple-200 transition transform active:scale-95 flex items-center justify-center gap-2 text-base">
+                    <span>Mulai Kerjakan</span>
+                    <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </form>
+        </div>
+
+        <!-- SCREEN 2: Soal Game / Asesmen -->
+        <div id="screen-quiz" class="hidden flex-col gap-4">
+            
+            <!-- Navigation Grid / Quick Jump & Student Badge -->
+            <div class="glass-card rounded-2xl p-4 shadow-md border border-white/60 flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-full bg-purple-100 text-purple-700 font-bold flex items-center justify-center text-xs">
+                        <i class="fa-solid fa-user"></i>
+                    </div>
+                    <div>
+                        <span id="player-display-name" class="font-bold text-sm block leading-tight text-slate-800">Nama Siswa</span>
+                        <span id="player-display-class" class="text-xs text-slate-500">Kelas 7X</span>
+                    </div>
+                </div>
+
+                <!-- Soal Progress Bar & Selector -->
+                <div class="flex items-center gap-2 w-full sm:w-auto overflow-x-auto py-1">
+                    <button onclick="toggleQuestionMap()" class="px-3 py-1.5 bg-purple-100 text-purple-700 hover:bg-purple-200 rounded-xl text-xs font-bold flex items-center gap-1.5 transition">
+                        <i class="fa-solid fa-th-large"></i>
+                        <span>Peta Soal (<span id="answered-count">0</span>/30)</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Modal Quick Jump Soal -->
+            <div id="modal-map" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                <div class="glass-card bg-white rounded-3xl p-6 max-w-lg w-full shadow-2xl space-y-4">
+                    <div class="flex justify-between items-center border-b pb-3">
+                        <h3 class="font-bold text-slate-800 text-base">Peta Navigasi Soal</h3>
+                        <button onclick="toggleQuestionMap()" class="text-slate-400 hover:text-slate-600 p-1"><i class="fa-solid fa-xmark text-xl"></i></button>
+                    </div>
+                    <div id="question-grid" class="grid grid-cols-6 gap-2 max-h-64 overflow-y-auto custom-scrollbar p-1">
+                        <!-- Filled by JS -->
+                    </div>
+                    <div class="flex items-center justify-between text-xs text-slate-500 border-t pt-3">
+                        <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-purple-600 inline-block"></span> Dijawab</span>
+                        <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-slate-200 inline-block"></span> Belum</span>
+                        <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full border-2 border-purple-600 inline-block"></span> Aktif</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Question Card -->
+            <div class="glass-card rounded-3xl p-6 sm:p-8 shadow-xl border border-white/80 space-y-6">
+                <!-- Top Header Soal -->
+                <div class="flex justify-between items-center border-b border-slate-100 pb-4">
+                    <span class="px-3 py-1 bg-purple-100 text-purple-700 font-extrabold text-xs sm:text-sm rounded-full">
+                        SOAL NO. <span id="current-q-num">1</span> OF 30
+                    </span>
+                    <span class="text-xs text-slate-400 font-medium">Pilihan Ganda</span>
+                </div>
+
+                <!-- Teks Bacaan / Narasi Soal (Jika ada) -->
+                <div id="reading-context-box" class="hidden bg-amber-50/80 border border-amber-200/80 rounded-2xl p-4 sm:p-5 text-sm text-slate-700 leading-relaxed custom-scrollbar max-h-52 overflow-y-auto shadow-inner">
+                    <div class="text-xs font-bold text-amber-800 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                        <i class="fa-solid fa-book-open"></i>
+                        <span id="reading-context-title">Teks Bacaan</span>
+                    </div>
+                    <div id="reading-context-body" class="whitespace-pre-line font-medium text-slate-800">
+                        <!-- Teks bacaan dimasukkan di sini -->
+                    </div>
+                </div>
+
+                <!-- Question Image (Optional Guru Insert) -->
+                <div id="q-image-container" class="hidden text-center">
+                    <img id="q-image" src="" alt="Soal Illustration" class="max-h-60 mx-auto rounded-2xl shadow-md border border-slate-200 object-contain">
+                </div>
+
+                <!-- Question Text -->
+                <div class="text-base sm:text-lg font-semibold text-slate-800 leading-snug" id="question-text">
+                    Loading question...
+                </div>
+
+                <!-- Options List -->
+                <div class="grid grid-cols-1 gap-3" id="options-container">
+                    <!-- Options inserted dynamically -->
+                </div>
+            </div>
+
+            <!-- Bottom Control Buttons -->
+            <div class="flex items-center justify-between gap-4 pt-2">
+                <button id="btn-prev" onclick="navigateQuestion(-1)" class="px-5 py-3 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 font-bold rounded-2xl shadow-sm transition flex items-center gap-2 text-sm disabled:opacity-40 disabled:cursor-not-allowed">
+                    <i class="fa-solid fa-chevron-left"></i>
+                    <span>Sebelumnya</span>
+                </button>
+
+                <button id="btn-next" onclick="navigateQuestion(1)" class="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-pink-600 text-white font-bold rounded-2xl shadow-md shadow-purple-200 transition flex items-center gap-2 text-sm">
+                    <span id="next-btn-text">Selanjutnya</span>
+                    <i id="next-btn-icon" class="fa-solid fa-chevron-right"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- SCREEN 3: Skor & Hasil Akhir -->
+        <div id="screen-result" class="hidden glass-card rounded-3xl p-6 sm:p-10 shadow-2xl border border-white/80 max-w-xl mx-auto w-full text-center space-y-6 my-auto">
+            <div class="inline-flex p-4 bg-emerald-100 text-emerald-600 rounded-full shadow-inner animate-bounce">
+                <i class="fa-solid fa-trophy text-4xl"></i>
+            </div>
+            
+            <div>
+                <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-800 font-fun">ULANGAN SELESAI!</h2>
+                <p class="text-sm text-slate-500 mt-1">Terima kasih telah menyelesaikan ujian dengan jujur.</p>
+            </div>
+
+            <!-- Identity Box -->
+            <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex justify-around text-left">
+                <div>
+                    <span class="text-xs text-slate-400 font-semibold uppercase block">Nama Siswa</span>
+                    <span id="res-nama" class="font-bold text-slate-800 text-sm"></span>
+                </div>
+                <div>
+                    <span class="text-xs text-slate-400 font-semibold uppercase block">Kelas</span>
+                    <span id="res-kelas" class="font-bold text-slate-800 text-sm"></span>
+                </div>
+            </div>
+
+            <!-- Big Score Card -->
+            <div class="bg-gradient-to-br from-purple-600 to-indigo-600 rounded-3xl p-6 text-white shadow-lg shadow-purple-200 space-y-2">
+                <span class="text-xs font-bold uppercase tracking-widest text-purple-200">SKOR AKHIR</span>
+                <div class="text-5xl font-extrabold font-fun tracking-wide" id="res-score">0</div>
+                <div class="flex justify-center gap-6 pt-2 text-xs font-semibold border-t border-purple-400/40 mt-3">
+                    <span class="text-emerald-200"><i class="fa-solid fa-circle-check"></i> Benar: <strong id="res-correct" class="text-white text-sm">0</strong></span>
+                    <span class="text-rose-200"><i class="fa-solid fa-circle-xmark"></i> Salah: <strong id="res-wrong" class="text-white text-sm">0</strong></span>
+                </div>
+            </div>
+
+            <!-- Detail Pelanggaran & Nomor Salah -->
+            <div class="space-y-3 text-left">
+                <div class="p-3 bg-amber-50 border border-amber-200 rounded-2xl text-xs text-amber-800 flex justify-between items-center">
+                    <span><i class="fa-solid fa-shield-cat text-amber-600 mr-1"></i> Jumlah Pelanggaran (Pindah Tab):</span>
+                    <span id="res-violations" class="font-bold text-sm text-amber-900">0 kali</span>
+                </div>
+
+                <div class="p-4 bg-slate-50 border border-slate-200 rounded-2xl text-xs space-y-1">
+                    <span class="font-bold text-slate-700 block">Nomor Soal Dijawab Salah:</span>
+                    <p id="res-wrong-list" class="text-slate-600 font-mono break-words leading-relaxed">Tidak ada (Sempurna!)</p>
+                </div>
+            </div>
+
+            <!-- GAS Sync Status Indicator -->
+            <div id="gas-status" class="text-xs py-2 px-3 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center gap-2">
+                <i class="fa-solid fa-spinner animate-spin"></i>
+                <span>Mengirim data skor ke server guru...</span>
+            </div>
+
+            <button onclick="location.reload()" class="w-full py-3.5 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-2xl shadow-md transition text-sm flex items-center justify-center gap-2">
+                <i class="fa-solid fa-rotate-right"></i>
+                <span>Kembali ke Halaman Utama</span>
+            </button>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="py-4 text-center text-xs text-slate-400 font-medium">
+        &copy; 2026 Bahasa Inggris Kelas 7 Fase D • Kurikulum Merdeka
+    </footer>
+
+    <script>
+        /* ==============================================================================
+           DATA SOAL LENGKAP (30 SOAL PERSIS SESUAI NASKAH UH 3)
+           ============================================================================== */
+        const quizData = [
+            // 1 - 3
+            {
+                no: 1,
+                contextTitle: "Read the dialogue below for questions 1 to 3:",
+                context: "Rian  : Hi, Maya! Are you hungry? Let's grab something to eat at the canteen.\nMaya : Sure! I love fried noodles. What about you?\nRian  : Well, I don't really like fried noodles. They are too greasy for me. I prefer chicken soup because it is warm and healthy.\nMaya : That sounds good! Let's go.",
+                question: "1. What food does Maya like?",
+                options: { A: "Chicken soup", B: "Fried noodles", C: "Greasy food", D: "Fried chicken" },
+                answer: "B"
+            },
+            {
+                no: 2,
+                contextTitle: "Read the dialogue below for questions 1 to 3:",
+                context: "Rian  : Hi, Maya! Are you hungry? Let's grab something to eat at the canteen.\nMaya : Sure! I love fried noodles. What about you?\nRian  : Well, I don't really like fried noodles. They are too greasy for me. I prefer chicken soup because it is warm and healthy.\nMaya : That sounds good! Let's go.",
+                question: "2. Why does Rian dislike fried noodles?",
+                options: { A: "They are too spicy.", B: "They are too warm.", C: "They are too greasy.", D: "They are too salty." },
+                answer: "C"
+            },
+            {
+                no: 3,
+                contextTitle: "Read the dialogue below for questions 1 to 3:",
+                context: "Rian  : Hi, Maya! Are you hungry? Let's grab something to eat at the canteen.\nMaya : Sure! I love fried noodles. What about you?\nRian  : Well, I don't really like fried noodles. They are too greasy for me. I prefer chicken soup because it is warm and healthy.\nMaya : That sounds good! Let's go.",
+                question: "3. From the dialogue, we can infer that Rian prefers chicken soup because...",
+                options: { A: "Maya recommends it to him.", B: "He wants something warm and healthy.", C: "It is the cheapest meal in the canteen.", D: "The canteen only serves noodles and soup." },
+                answer: "B"
+            },
+
+            // 4 - 6
+            {
+                no: 4,
+                contextTitle: "Read the dialogue below for questions 4 to 6:",
+                context: "Dinda  : What does your favorite drink taste like, Galang?\nGalang : I really like iced lemonade. It is sweet, sour, and very refreshing on a hot day!\nDinda  : Do you add any milk to it?\nGalang : No, I don't. Milk makes lemonade taste strange. I just add some honey and ice cubes.",
+                question: "4. What are the adjectives used by Galang to describe iced lemonade?",
+                options: { A: "Bitter, warm, and greasy", B: "Sweet, sour, and refreshing", C: "Salty, hot, and spicy", D: "Crunchy, cold, and plain" },
+                answer: "B"
+            },
+            {
+                no: 5,
+                contextTitle: "Read the dialogue below for questions 4 to 6:",
+                context: "Dinda  : What does your favorite drink taste like, Galang?\nGalang : I really like iced lemonade. It is sweet, sour, and very refreshing on a hot day!\nDinda  : Do you add any milk to it?\nGalang : No, I don't. Milk makes lemonade taste strange. I just add some honey and ice cubes.",
+                question: "5. Galang adds _______ and _______ to his lemonade.",
+                options: { A: "milk; sugar", B: "milk; ice cubes", C: "honey; ice cubes", D: "honey; warm water" },
+                answer: "C"
+            },
+            {
+                no: 6,
+                contextTitle: "Read the dialogue below for questions 4 to 6:",
+                context: "Dinda  : What does your favorite drink taste like, Galang?\nGalang : I really like iced lemonade. It is sweet, sour, and very refreshing on a hot day!\nDinda  : Do you add any milk to it?\nGalang : No, I don't. Milk makes lemonade taste strange. I just add some honey and ice cubes.",
+                question: "6. Why does Galang NOT put milk in his lemonade?",
+                options: { A: "He does not like milk in general.", B: "Milk makes the lemonade taste strange.", C: "There is no milk in his house.", D: "Milk makes the beverage too sweet." },
+                answer: "B"
+            },
+
+            // 7 - 10
+            {
+                no: 7,
+                contextTitle: "Read the short text for questions 7 to 10:",
+                context: "My name is Andre. My absolute favorite snack is pisang goreng (fried bananas). It is crisp on the outside and soft on the inside. My mother usually sprinkles grated cheese and chocolate on top. It tastes amazingly delicious! However, I dislike eating it when it gets cold because it turns soggy.",
+                question: "7. What is the texture of the fried banana when it is fresh?",
+                options: { A: "Soft on the outside, crisp on the inside", B: "Crisp on the outside, soft on the inside", C: "Hard, bitter, and dry", D: "Soggy and greasy" },
+                answer: "B"
+            },
+            {
+                no: 8,
+                contextTitle: "Read the short text for questions 7 to 10:",
+                context: "My name is Andre. My absolute favorite snack is pisang goreng (fried bananas). It is crisp on the outside and soft on the inside. My mother usually sprinkles grated cheese and chocolate on top. It tastes amazingly delicious! However, I dislike eating it when it gets cold because it turns soggy.",
+                question: "8. What toppings does Andre’s mother put on the fried banana?",
+                options: { A: "Sugar and cinnamon", B: "Honey and peanuts", C: "Grated cheese and chocolate", D: "Butter and milk" },
+                answer: "C"
+            },
+            {
+                no: 9,
+                contextTitle: "Read the short text for questions 7 to 10:",
+                context: "My name is Andre. My absolute favorite snack is pisang goreng (fried bananas). It is crisp on the outside and soft on the inside. My mother usually sprinkles grated cheese and chocolate on top. It tastes amazingly delicious! However, I dislike eating it when it gets cold because it turns soggy.",
+                question: "9. The word \"soggy\" in the text is closest in meaning to...",
+                options: { A: "Very hard and crunchy", B: "Wet, soft, and not firm", C: "Hot and steam-cooked", D: "Sweet and tasty" },
+                answer: "B"
+            },
+            {
+                no: 10,
+                contextTitle: "Read the short text for questions 7 to 10:",
+                context: "My name is Andre. My absolute favorite snack is pisang goreng (fried bananas). It is crisp on the outside and soft on the inside. My mother usually sprinkles grated cheese and chocolate on top. It tastes amazingly delicious! However, I dislike eating it when it gets cold because it turns soggy.",
+                question: "10. What can we conclude about Andre’s habit regarding pisang goreng?",
+                options: { A: "He prefers eating it right after it is cooked.", B: "He always buys it at a night market.", C: "He cooks it by himself every morning.", D: "He eats it even when it becomes cold and soggy." },
+                answer: "A"
+            },
+
+            // 11 - 15
+            {
+                no: 11,
+                context: null,
+                question: "11. Edo wants to buy _______ apple and _______ bottle of mineral water.",
+                options: { A: "a; a", B: "an; a", C: "a; an", D: "an; an" },
+                answer: "B"
+            },
+            {
+                no: 12,
+                context: null,
+                question: "12. My sister orders _______ avocado juice. _______ juice is very thick and creamy.",
+                options: { A: "an; The", B: "a; The", C: "an; A", D: "the; An" },
+                answer: "A"
+            },
+            {
+                no: 13,
+                context: null,
+                question: "13. Rendang is _______ famous Indonesian dish. It has _______ rich flavor from spices.",
+                options: { A: "an; a", B: "a; a", C: "a; an", D: "the; an" },
+                answer: "B"
+            },
+            {
+                no: 14,
+                context: null,
+                question: "14. Look at the options below. Which sentence uses articles correctly?",
+                options: { A: "She eats an orange and a ice cream.", B: "He drinks a cup of coffee in an morning.", C: "They bought an egg and a loaf of bread.", D: "I saw a old vendor selling an banana." },
+                answer: "C"
+            },
+            {
+                no: 15,
+                context: null,
+                question: "15. \"Sambal contains a lot of chilies, so it is extremely _______.\"\nChoose the correct adjective to complete the sentence.",
+                options: { A: "bitter", B: "salty", C: "spicy", D: "bland" },
+                answer: "C"
+            },
+
+            // 16 - 21
+            {
+                no: 16,
+                contextTitle: "Read the recipe below for questions 16 to 21:",
+                context: "HOW TO MAKE SWEET ICED TEA\nIngredients:\n- 1 tea bag\n- 2 tablespoons of sugar\n- 200 ml of hot water\n- Ice cubes\n\nSteps:\n1. First, steep the tea bag in hot water for about 3-5 minutes until the water turns brown.\n2. Next, add two tablespoons of sugar into the glass.\n3. Stir the mixture well until the sugar dissolves completely.\n4. After that, remove the tea bag from the glass.\n5. Then, add ice cubes as much as you like.\n6. Finally, serve the refreshing sweet iced tea while cold!",
+                question: "16. What is the main goal of the procedural text above?",
+                options: { A: "To describe how tea is grown", B: "To explain how to make sweet iced tea", C: "To convince people to drink tea", D: "To compare hot tea and iced tea" },
+                answer: "B"
+            },
+            {
+                no: 17,
+                contextTitle: "Read the recipe below for questions 16 to 21:",
+                context: "HOW TO MAKE SWEET ICED TEA\nIngredients:\n- 1 tea bag\n- 2 tablespoons of sugar\n- 200 ml of hot water\n- Ice cubes\n\nSteps:\n1. First, steep the tea bag in hot water for about 3-5 minutes until the water turns brown.\n2. Next, add two tablespoons of sugar into the glass.\n3. Stir the mixture well until the sugar dissolves completely.\n4. After that, remove the tea bag from the glass.\n5. Then, add ice cubes as much as you like.\n6. Finally, serve the refreshing sweet iced tea while cold!",
+                question: "17. How many ingredients are needed to make the drink?",
+                options: { A: "Three", B: "Four", C: "Five", D: "Six" },
+                answer: "B"
+            },
+            {
+                no: 18,
+                contextTitle: "Read the recipe below for questions 16 to 21:",
+                context: "HOW TO MAKE SWEET ICED TEA\nIngredients:\n- 1 tea bag\n- 2 tablespoons of sugar\n- 200 ml of hot water\n- Ice cubes\n\nSteps:\n1. First, steep the tea bag in hot water for about 3-5 minutes until the water turns brown.\n2. Next, add two tablespoons of sugar into the glass.\n3. Stir the mixture well until the sugar dissolves completely.\n4. After that, remove the tea bag from the glass.\n5. Then, add ice cubes as much as you like.\n6. Finally, serve the refreshing sweet iced tea while cold!",
+                question: "18. What should you do right after adding the sugar into the glass?",
+                options: { A: "Add the ice cubes", B: "Remove the tea bag", C: "Stir the mixture well", D: "Serve the drink" },
+                answer: "C"
+            },
+            {
+                no: 19,
+                contextTitle: "Read the recipe below for questions 16 to 21:",
+                context: "HOW TO MAKE SWEET ICED TEA\nIngredients:\n- 1 tea bag\n- 2 tablespoons of sugar\n- 200 ml of hot water\n- Ice cubes\n\nSteps:\n1. First, steep the tea bag in hot water for about 3-5 minutes until the water turns brown.\n2. Next, add two tablespoons of sugar into the glass.\n3. Stir the mixture well until the sugar dissolves completely.\n4. After that, remove the tea bag from the glass.\n5. Then, add ice cubes as much as you like.\n6. Finally, serve the refreshing sweet iced tea while cold!",
+                question: "19. Which of the following sentences from the text is an imperative sentence (command)?",
+                options: { A: "\"1 tea bag\"", B: "\"The water turns brown.\"", C: "\"Stir the mixture well until the sugar dissolves.\"", D: "\"Refreshing sweet iced tea.\"" },
+                answer: "C"
+            },
+            {
+                no: 20,
+                contextTitle: "Read the recipe below for questions 16 to 21:",
+                context: "HOW TO MAKE SWEET ICED TEA\nIngredients:\n- 1 tea bag\n- 2 tablespoons of sugar\n- 200 ml of hot water\n- Ice cubes\n\nSteps:\n1. First, steep the tea bag in hot water for about 3-5 minutes until the water turns brown.\n2. Next, add two tablespoons of sugar into the glass.\n3. Stir the mixture well until the sugar dissolves completely.\n4. After that, remove the tea bag from the glass.\n5. Then, add ice cubes as much as you like.\n6. Finally, serve the refreshing sweet iced tea while cold!",
+                question: "20. What would likely happen if you added the ice cubes before stirring the sugar in hot water?",
+                options: { A: "The sugar would dissolve much faster.", B: "The sugar would take a longer time to dissolve.", C: "The tea would taste very bitter.", D: "The tea bag would break instantly." },
+                answer: "B"
+            },
+            {
+                no: 21,
+                contextTitle: "Read the recipe below for questions 16 to 21:",
+                context: "HOW TO MAKE SWEET ICED TEA\nIngredients:\n- 1 tea bag\n- 2 tablespoons of sugar\n- 200 ml of hot water\n- Ice cubes\n\nSteps:\n1. First, steep the tea bag in hot water for about 3-5 minutes until the water turns brown.\n2. Next, add two tablespoons of sugar into the glass.\n3. Stir the mixture well until the sugar dissolves completely.\n4. After that, remove the tea bag from the glass.\n5. Then, add ice cubes as much as you like.\n6. Finally, serve the refreshing sweet iced tea while cold!",
+                question: "21. The word \"dissolves\" in step 3 means...",
+                options: { A: "Melts and mixes into liquid", B: "Turns into solid ice", C: "Freezes instantly", D: "Becomes dark brown" },
+                answer: "A"
+            },
+
+            // 22 - 26
+            {
+                no: 22,
+                contextTitle: "Read the recipe below for questions 22 to 26:",
+                context: "EASY CHEESY OMELETTE\nIngredients:\n- 2 eggs\n- 30 grams of grated cheese\n- 1 pinch of salt and black pepper\n- 1 tablespoon of butter\n\nEquipment:\n- A frying pan\n- A bowl\n- A whisk or fork\n\nInstructions:\n1. Crack the eggs into a bowl.\n2. Add a pinch of salt and black pepper, then whisk the eggs thoroughly.\n3. Heat the butter in a frying pan over medium heat.\n4. Pour the whisked eggs into the hot pan.\n5. Sprinkle the grated cheese evenly over the eggs when they start to set.\n6. Fold the omelette in half and cook for another minute.\n7. Transfer the omelette to a plate and serve warm.",
+                question: "22. What equipment do you need to mix the eggs?",
+                options: { A: "A frying pan and butter", B: "A bowl and a whisk or fork", C: "A knife and a plate", D: "A spoon and a blender" },
+                answer: "B"
+            },
+            {
+                no: 23,
+                contextTitle: "Read the recipe below for questions 22 to 26:",
+                context: "EASY CHEESY OMELETTE\nIngredients:\n- 2 eggs\n- 30 grams of grated cheese\n- 1 pinch of salt and black pepper\n- 1 tablespoon of butter\n\nEquipment:\n- A frying pan\n- A bowl\n- A whisk or fork\n\nInstructions:\n1. Crack the eggs into a bowl.\n2. Add a pinch of salt and black pepper, then whisk the eggs thoroughly.\n3. Heat the butter in a frying pan over medium heat.\n4. Pour the whisked eggs into the hot pan.\n5. Sprinkle the grated cheese evenly over the eggs when they start to set.\n6. Fold the omelette in half and cook for another minute.\n7. Transfer the omelette to a plate and serve warm.",
+                question: "23. When should you sprinkle the grated cheese?",
+                options: { A: "Before cracking the eggs", B: "After transferring the omelette to a plate", C: "When the eggs start to set in the pan", D: "Right before heating the butter" },
+                answer: "C"
+            },
+            {
+                no: 24,
+                contextTitle: "Read the recipe below for questions 22 to 26:",
+                context: "EASY CHEESY OMELETTE\nIngredients:\n- 2 eggs\n- 30 grams of grated cheese\n- 1 pinch of salt and black pepper\n- 1 tablespoon of butter\n\nEquipment:\n- A frying pan\n- A bowl\n- A whisk or fork\n\nInstructions:\n1. Crack the eggs into a bowl.\n2. Add a pinch of salt and black pepper, then whisk the eggs thoroughly.\n3. Heat the butter in a frying pan over medium heat.\n4. Pour the whisked eggs into the hot pan.\n5. Sprinkle the grated cheese evenly over the eggs when they start to set.\n6. Fold the omelette in half and cook for another minute.\n7. Transfer the omelette to a plate and serve warm.",
+                question: "24. What is the purpose of step 6 (\"Fold the omelette in half...\")?",
+                options: { A: "To keep the cheese inside and melt it evenly.", B: "To make the eggs burn faster.", C: "To cool down the frying pan.", D: "To separate the egg whites from the yolk." },
+                answer: "A"
+            },
+            {
+                no: 25,
+                contextTitle: "Read the recipe below for questions 22 to 26:",
+                context: "EASY CHEESY OMELETTE\nIngredients:\n- 2 eggs\n- 30 grams of grated cheese\n- 1 pinch of salt and black pepper\n- 1 tablespoon of butter\n\nEquipment:\n- A frying pan\n- A bowl\n- A whisk or fork\n\nInstructions:\n1. Crack the eggs into a bowl.\n2. Add a pinch of salt and black pepper, then whisk the eggs thoroughly.\n3. Heat the butter in a frying pan over medium heat.\n4. Pour the whisked eggs into the hot pan.\n5. Sprinkle the grated cheese evenly over the eggs when they start to set.\n6. Fold the omelette in half and cook for another minute.\n7. Transfer the omelette to a plate and serve warm.",
+                question: "25. \"_____ the butter in a frying pan...\"\nThe correct imperative verb to fill in the blank is:",
+                options: { A: "Melt / Heat", B: "Drink", C: "Freeze", D: "Chop" },
+                answer: "A"
+            },
+            {
+                no: 26,
+                contextTitle: "Read the recipe below for questions 22 to 26:",
+                context: "EASY CHEESY OMELETTE\nIngredients:\n- 2 eggs\n- 30 grams of grated cheese\n- 1 pinch of salt and black pepper\n- 1 tablespoon of butter\n\nEquipment:\n- A frying pan\n- A bowl\n- A whisk or fork\n\nInstructions:\n1. Crack the eggs into a bowl.\n2. Add a pinch of salt and black pepper, then whisk the eggs thoroughly.\n3. Heat the butter in a frying pan over medium heat.\n4. Pour the whisked eggs into the hot pan.\n5. Sprinkle the grated cheese evenly over the eggs when they start to set.\n6. Fold the omelette in half and cook for another minute.\n7. Transfer the omelette to a plate and serve warm.",
+                question: "26. Look at the actions below:\n(1) Sprinkle cheese\n(2) Whisk eggs with salt and pepper\n(3) Pour eggs into the pan\n(4) Heat butter in the pan\nThe correct order of these steps is...",
+                options: { A: "(2) - (4) - (3) - (1)", B: "(4) - (3) - (2) - (1)", C: "(1) - (2) - (3) - (4)", D: "(3) - (2) - (4) - (1)" },
+                answer: "A"
+            },
+
+            // 27 - 28
+            {
+                no: 27,
+                contextTitle: "Read the randomized procedural steps for making Instant Fried Noodles (Questions 27 & 28):",
+                context: "(1) Stir the noodles gently with the seasonings until mixed well.\n(2) Boil 400 ml of water in a small pot and add the noodles.\n(3) Drain the water from the noodles using a strainer.\n(4) Put the noodles onto a plate together with the seasonings.\n(5) While the noodles are cooking, mix the seasoning powder, oil, and soy sauce on a plate.",
+                question: "27. The most logical sequence to cook the instant noodles is...",
+                options: { A: "(2) - (5) - (3) - (4) - (1)", B: "(5) - (2) - (1) - (3) - (4)", C: "(2) - (1) - (4) - (3) - (5)", D: "(3) - (5) - (2) - (4) - (1)" },
+                answer: "A"
+            },
+            {
+                no: 28,
+                contextTitle: "Read the randomized procedural steps for making Instant Fried Noodles (Questions 27 & 28):",
+                context: "(1) Stir the noodles gently with the seasonings until mixed well.\n(2) Boil 400 ml of water in a small pot and add the noodles.\n(3) Drain the water from the noodles using a strainer.\n(4) Put the noodles onto a plate together with the seasonings.\n(5) While the noodles are cooking, mix the seasoning powder, oil, and soy sauce on a plate.",
+                question: "28. What tool is mentioned to separate the cooked noodles from the water?",
+                options: { A: "A spoon", B: "A pot", C: "A strainer", D: "A fork" },
+                answer: "C"
+            },
+
+            // 29 - 30
+            {
+                no: 29,
+                contextTitle: "Read the short situational prompt for questions 29 and 30:",
+                context: "Sinta is organizing a small birthday picnic with her friends. She wants to make a healthy, colorful beverage that is quick to prepare. She has apples, oranges, grapes, honey, and ice.",
+                question: "29. Based on her ingredients, which recipe is the best choice for Sinta to write and make?",
+                options: { A: "Hot Chocolate Milkshake", B: "Fresh Fruit Mocktail / Punch", C: "Warm Ginger Tea", D: "Fried Banana Shake" },
+                answer: "B"
+            },
+            {
+                no: 30,
+                contextTitle: "Read the short situational prompt for questions 29 and 30:",
+                context: "Sinta is organizing a small birthday picnic with her friends. She wants to make a healthy, colorful beverage that is quick to prepare. She has apples, oranges, grapes, honey, and ice.",
+                question: "30. Sinta writes an imperative sentence for her recipe:\n\"_______ the apples and oranges into small bite-sized pieces before mixing.\"\nThe correct action verb to complete her instruction is:",
+                options: { A: "Boil", B: "Chop", C: "Fry", D: "Bake" },
+                answer: "B"
+            }
+        ];
+
+        /* STATE VARIABLES */
+        let playerName = "";
+        let playerClass = "";
+        let currentIndex = 0;
+        let userAnswers = {}; // { 1: 'A', 2: 'C', ... }
+        let violationCount = 0;
+        let totalTimeSeconds = 60 * 60; // 60 menit
+        let timerInterval = null;
+        let isGameSubmitted = false;
+
+        // START GAME
+        function startGame(e) {
+            e.preventDefault();
+            const inputPass = document.getElementById('input-passcode').value.trim();
+            const errBox = document.getElementById('login-error');
+
+            if (inputPass !== DEFAULT_PASSCODE) {
+                errBox.classList.remove('hidden');
+                return;
+            }
+            errBox.classList.add('hidden');
+
+            playerName = document.getElementById('input-nama').value.trim();
+            playerClass = document.getElementById('input-kelas').value.trim();
+
+            document.getElementById('player-display-name').innerText = playerName;
+            document.getElementById('player-display-class').innerText = "Kelas " + playerClass;
+
+            // Switch Screen
+            document.getElementById('screen-welcome').classList.add('hidden');
+            document.getElementById('top-nav').classList.remove('hidden');
+            document.getElementById('top-nav').classList.add('flex');
+            document.getElementById('screen-quiz').classList.remove('hidden');
+            document.getElementById('screen-quiz').classList.add('flex');
+
+            // Render First Question & Timer
+            renderQuestion();
+            startTimer();
+            setupAntiCheating();
+        }
+
+        // TIMER LOGIC
+        function startTimer() {
+            updateTimerDisplay();
+            timerInterval = setInterval(() => {
+                totalTimeSeconds--;
+                updateTimerDisplay();
+
+                if (totalTimeSeconds <= 0) {
+                    clearInterval(timerInterval);
+                    alert("Waktu pengerjaan 60 menit telah habis! Jawaban Anda akan otomatis dikirim.");
+                    submitGame();
+                }
+            }, 1000);
+        }
+
+        function updateTimerDisplay() {
+            const minutes = Math.floor(totalTimeSeconds / 60);
+            const seconds = totalTimeSeconds % 60;
+            document.getElementById('timer-display').innerText = 
+                `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        // DETEKSI KECURANGAN (3x Violation => Auto Reset to Home)
+        function setupAntiCheating() {
+            document.addEventListener("visibilitychange", () => {
+                if (document.hidden && !isGameSubmitted) {
+                    handleViolation("Beralih tab/layar saat ujian!");
+                }
+            });
+
+            window.addEventListener("blur", () => {
+                if (!isGameSubmitted) {
+                    handleViolation("Fokus layar hilang / beralih aplikasi!");
+                }
+            });
+        }
+
+        function handleViolation(reason) {
+            violationCount++;
+            document.getElementById('violation-count').innerText = violationCount;
+            document.getElementById('violation-badge').classList.remove('hidden');
+
+            if (violationCount >= 3) {
+                clearInterval(timerInterval);
+                alert(`PELANGGARAN MAKSIMAL (3/3)!\nAlasan: ${reason}\n\nAnda melakukan kecurangan berulang. Asesmen Anda dibatalkan dan kembali ke awal.`);
+                location.reload();
+            } else {
+                alert(`PERINGATAN KECURANGAN (${violationCount}/3)!\nAlasan: ${reason}\n\nDilarang meninggalkan layar tes! Pada 3 kali pelanggaran, Anda akan dikeluarkan.`);
+            }
+        }
+
+        // RENDER QUESTION
+        function renderQuestion() {
+            const q = quizData[currentIndex];
+            
+            document.getElementById('current-q-num').innerText = q.no;
+            document.getElementById('question-text').innerText = q.question;
+
+            // Reading Context / Dialogue (If present)
+            const contextBox = document.getElementById('reading-context-box');
+            if (q.context) {
+                contextBox.classList.remove('hidden');
+                document.getElementById('reading-context-title').innerText = q.contextTitle || "Teks Bacaan / Dialog";
+                document.getElementById('reading-context-body').innerText = q.context;
+            } else {
+                contextBox.classList.add('hidden');
+            }
+
+            // Image Question Setup (Guru Custom Insert)
+            const imgBox = document.getElementById('q-image-container');
+            const imgElem = document.getElementById('q-image');
+            if (QUESTION_IMAGES[q.no] && QUESTION_IMAGES[q.no] !== "") {
+                imgElem.src = QUESTION_IMAGES[q.no];
+                imgBox.classList.remove('hidden');
+            } else {
+                imgBox.classList.add('hidden');
+            }
+
+            // Options Setup
+            const optionsContainer = document.getElementById('options-container');
+            optionsContainer.innerHTML = "";
+
+            const selectedOpt = userAnswers[q.no];
+
+            Object.keys(q.options).forEach(optKey => {
+                const optText = q.options[optKey];
+                const isSelected = selectedOpt === optKey;
+
+                // Option Image if exists
+                const hasOptImg = OPTION_IMAGES[q.no] && OPTION_IMAGES[q.no][optKey];
+
+                const optBtn = document.createElement('button');
+                optBtn.type = "button";
+                optBtn.onclick = () => selectOption(q.no, optKey);
+                optBtn.className = `w-full text-left p-4 rounded-2xl border-2 transition flex items-center justify-between gap-3 ${
+                    isSelected 
+                    ? 'border-purple-600 bg-purple-50 text-purple-900 shadow-md ring-2 ring-purple-200' 
+                    : 'border-slate-200 bg-white hover:border-purple-300 hover:bg-slate-50 text-slate-700'
+                }`;
+
+                optBtn.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <span class="w-8 h-8 rounded-xl flex items-center justify-center font-bold text-sm ${
+                            isSelected ? 'bg-purple-600 text-white' : 'bg-slate-100 text-slate-600'
+                        }">${optKey}</span>
+                        <span class="font-medium text-sm sm:text-base">${optText}</span>
+                    </div>
+                    ${hasOptImg ? `<img src="${OPTION_IMAGES[q.no][optKey]}" class="h-12 w-12 object-cover rounded-lg border">` : ''}
+                    <div class="w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                        isSelected ? 'border-purple-600 bg-purple-600 text-white' : 'border-slate-300'
+                    }">
+                        ${isSelected ? '<i class="fa-solid fa-check text-xs"></i>' : ''}
+                    </div>
+                `;
+
+                optionsContainer.appendChild(optBtn);
+            });
+
+            // Nav Controls Update
+            document.getElementById('btn-prev').disabled = currentIndex === 0;
+            
+            const nextBtnText = document.getElementById('next-btn-text');
+            const nextBtnIcon = document.getElementById('next-btn-icon');
+
+            if (currentIndex === quizData.length - 1) {
+                nextBtnText.innerText = "Selesaikan Ulangan";
+                nextBtnIcon.className = "fa-solid fa-paper-plane";
+            } else {
+                nextBtnText.innerText = "Selanjutnya";
+                nextBtnIcon.className = "fa-solid fa-chevron-right";
+            }
+
+            updateAnsweredCount();
+        }
+
+        function selectOption(qNo, optKey) {
+            userAnswers[qNo] = optKey;
+            renderQuestion();
+        }
+
+        function navigateQuestion(direction) {
+            if (direction === 1 && currentIndex === quizData.length - 1) {
+                confirmSubmission();
+                return;
+            }
+            currentIndex += direction;
+            if (currentIndex < 0) currentIndex = 0;
+            if (currentIndex >= quizData.length) currentIndex = quizData.length - 1;
+            renderQuestion();
+        }
+
+        function updateAnsweredCount() {
+            const count = Object.keys(userAnswers).length;
+            document.getElementById('answered-count').innerText = count;
+        }
+
+        // MAP & QUICK JUMP
+        function toggleQuestionMap() {
+            const modal = document.getElementById('modal-map');
+            if (modal.classList.contains('hidden')) {
+                renderQuestionGrid();
+                modal.classList.remove('hidden');
+            } else {
+                modal.classList.add('hidden');
+            }
+        }
+
+        function renderQuestionGrid() {
+            const grid = document.getElementById('question-grid');
+            grid.innerHTML = "";
+
+            quizData.forEach((q, idx) => {
+                const isAnswered = userAnswers[q.no] !== undefined;
+                const isCurrent = idx === currentIndex;
+
+                const btn = document.createElement('button');
+                btn.type = "button";
+                btn.onclick = () => {
+                    currentIndex = idx;
+                    renderQuestion();
+                    toggleQuestionMap();
+                };
+                btn.className = `h-10 rounded-xl font-bold text-xs flex items-center justify-center border transition ${
+                    isCurrent ? 'ring-2 ring-purple-600 border-purple-600 bg-purple-100 text-purple-900' :
+                    isAnswered ? 'bg-purple-600 text-white border-purple-600' : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'
+                }`;
+                btn.innerText = q.no;
+                grid.appendChild(btn);
+            });
+        }
+
+        function confirmSubmission() {
+            const answered = Object.keys(userAnswers).length;
+            const total = quizData.length;
+
+            let msg = `Apakah Anda yakin ingin menyelesaikan ulangan ini?`;
+            if (answered < total) {
+                msg = `PERHATIAN: Anda baru menjawab ${answered} dari ${total} soal.\nMasih ada ${total - answered} soal belum dijawab!\n\nYakin ingin mengumpulkan sekarang?`;
+            }
+
+            if (confirm(msg)) {
+                submitGame();
+            }
+        }
+
+        // SUBMIT & SCORE CALCULATION
+        function submitGame() {
+            isGameSubmitted = true;
+            clearInterval(timerInterval);
+
+            let correctCount = 0;
+            let wrongNumbers = [];
+
+            quizData.forEach(q => {
+                const userAns = userAnswers[q.no];
+                if (userAns === q.answer) {
+                    correctCount++;
+                } else {
+                    wrongNumbers.push(q.no);
+                }
+            });
+
+            const totalQ = quizData.length;
+            const wrongCount = totalQ - correctCount;
+            // Skala 0 - 100
+            const finalScore = Math.round((correctCount / totalQ) * 100);
+
+            // Hide Quiz, Show Results
+            document.getElementById('screen-quiz').classList.remove('flex');
+            document.getElementById('screen-quiz').classList.add('hidden');
+            document.getElementById('screen-result').classList.remove('hidden');
+
+            // Render Result Card
+            document.getElementById('res-nama').innerText = playerName;
+            document.getElementById('res-kelas').innerText = playerClass;
+            document.getElementById('res-score').innerText = finalScore;
+            document.getElementById('res-correct').innerText = correctCount;
+            document.getElementById('res-wrong').innerText = wrongCount;
+            document.getElementById('res-violations').innerText = `${violationCount} kali`;
+
+            const wrongStr = wrongNumbers.length > 0 ? wrongNumbers.join(', ') : "Tidak ada (Sempurna!)";
+            document.getElementById('res-wrong-list').innerText = wrongStr;
+
+            // Send Data to Google Apps Script (GAS)
+            sendDataToGAS({
+                timestamp: new Date().toLocaleString('id-ID'),
+                nama: playerName,
+                kelas: playerClass,
+                salah: wrongCount,
+                benar: correctCount,
+                skor: finalScore,
+                pelanggaran: violationCount,
+                soalSalah: wrongStr
+            });
+        }
+
+        // GOOGLE APPS SCRIPT SYNC
+        function sendDataToGAS(payload) {
+            const statusElem = document.getElementById('gas-status');
+
+            if (!GAS_URL || GAS_URL.includes("ISI_URL_GOOGLE_APPS_SCRIPT_DI_SINI")) {
+                statusElem.className = "text-xs py-2 px-3 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center gap-2";
+                statusElem.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-amber-600"></i><span>Selesai (Skor tersimpan lokal. Guru belum menyisipkan WebApp GAS URL).</span>`;
+                return;
+            }
+
+            statusElem.innerHTML = `<i class="fa-solid fa-spinner animate-spin text-purple-600"></i><span>Mengirim skor ke Google Spreadsheet guru...</span>`;
+
+            // Kirim via fetch API POST
+            fetch(GAS_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+            .then(() => {
+                statusElem.className = "text-xs py-2 px-3 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center gap-2";
+                statusElem.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-600"></i><span>Skor berhasil dicatat ke Google Sheets!</span>`;
+            })
+            .catch(err => {
+                console.error("Sync Error:", err);
+                statusElem.className = "text-xs py-2 px-3 rounded-xl bg-rose-100 text-rose-800 flex items-center justify-center gap-2";
+                statusElem.innerHTML = `<i class="fa-solid fa-circle-xmark text-rose-600"></i><span>Gagal mengirim skor. Pastikan koneksi internet stabil.</span>`;
+            });
+        }
+    </script>
+</body>
+</html>
